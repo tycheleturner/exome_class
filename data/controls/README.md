@@ -16,7 +16,7 @@ We needed control exome bams for Agilent V5 to run with CoNIFER and XHMM so look
 
 6. Downloaded the runinfo table and saved as: control_run_info.txt
 
-7. Download the first 25 SRR files as follows: 
+7. Download the first 35 SRR files as follows: 
 head -35 control_sras.txt  > control_sras_35.txt
 sh submit_get_downloads.sh
 
