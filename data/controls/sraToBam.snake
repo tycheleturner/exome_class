@@ -1,0 +1,46 @@
+#SRA processing pipeline
+#Tychele Turner, Ph.D.
+#version: 01/14/2017
+
+import os
+
+if config == {}:
+    configfile: "sraToBam.json"
+
+DATA_DIR=config["data_dir"]
+BAM_OUT=config["bam_out"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+	if file.endswith(".sra"):
+		SAMPLES.append(str(file).split('.sra')[0])
+print(SAMPLES)
+
+rule all:
+	input: expand("%s/{sample}.sra"%DATA_DIR, sample=SAMPLES), expand("%s/{sample}.sorted.bam"%BAM_OUT, sample=SAMPLES)
+	params: sge_opts="-l mfree=20G -N run_all" 
+
+rule process_data:
+	input: "%s/{sample}.sra"%DATA_DIR
+	output: "%s/{sample}.sorted.bam"%BAM_OUT
+	params: prefix="{sample}", sge_opts="-l h_vmem=20G,disk_free=20G -N sb -cwd "
+	shell: """
+	module load modules modules-init modules-gs
+	module load ncbi-sra/2.5.1
+	module load ncbi-sdk/1.1.2
+	module load ncbi-vdb/2.5.1
+	module load aspera/3.5.4.103990
+	module load samtools/0.1.18
+ 
+        sam-dump -u -r {input}  | samtools view -bS - | samtools sort - {params.prefix}.sorted && samtools index {params.prefix}.sorted.bam
+        mv {params.prefix}.sorted.bam {BAM_OUT}
+        mv {params.prefix}.sorted.bam.bai {BAM_OUT}
+        ls {output}
+	"""
+
+rule clean:
+	"""clean up temporary files"""
+	shell: """
+	"""
+
+

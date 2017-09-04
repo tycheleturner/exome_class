@@ -1,0 +1,4 @@
+{
+  "data_dir": "/path/to/sra",
+  "bam_out": "/path/to/out/bam"
+}
