@@ -1,0 +1,7 @@
+{
+  "reference": "/path/to/exome_genome_class/nobackups/reference/genome/human_g1k_v37.fasta",
+  "data_dir": "/path/to/exome_genome_class/nobackups/instructor/cram/exomes",
+  "picard": "/path/to/picard-tools-2.5.0/picard.jar",
+  "java": "/path/to/java/jre1.8.0_65/bin/java",
+  "intervals": "/path/to/exome_genome_class/nobackups/annotation/wex_Agilent_SureSelect_v05_b37.baits.slop50.merged.for.wgs.list"
+}

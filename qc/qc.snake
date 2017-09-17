@@ -1,0 +1,57 @@
+import os
+
+if config == {}:
+    configfile: "qc.json"
+
+REFERENCE = config["reference"]
+
+DATA_DIR = config["data_dir"]
+PICARD = config["picard"]
+JAVA = config["java"]
+INTERVALS = config["intervals"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+    if file.endswith(".final.cram"):
+        SAMPLES.append(str(file).split('.final.cram')[0])
+print(SAMPLES)
+
+rule all:
+    input: expand("%s/{sample}.final.cram" % DATA_DIR, sample = SAMPLES), expand("{sample}.flagstat.txt", sample = SAMPLES), expand("{sample}_insert_size_metrics.txt", sample=SAMPLES), expand("{sample}_histogram.pdf", sample=SAMPLES), expand("{sample}_hybridization_metrics.txt", sample=SAMPLES), expand("{sample}_per_target_coverage.txt", sample=SAMPLES)
+    params: sge_opts="-l mfree=20G -N run_all"
+
+rule flagstat:
+    input: "%s/{sample}.final.cram"%DATA_DIR
+    output: "{sample}.flagstat.txt"
+    benchmark: "{sample}.flagstat.benchmark"
+    params: sge_opts="-l mfree=5G,h_rt=24:00:00 -N run_flagstat -cwd"
+    shell: """
+    module load modules modules-init modules-gs
+    module load mpfr/3.1.0 gmp/5.0.2 mpc/0.8.2 gcc/4.9.1 R/3.4.0
+    module load samtools/1.4
+    samtools flagstat {input} > {output}
+    """
+
+rule insert_size_metrics:
+    input: "%s/{sample}.final.cram"%DATA_DIR
+    output: "{sample}_insert_size_metrics.txt", "{sample}_histogram.pdf"
+    benchmark: "{sample}.insert.size.benchmark"
+    params: sge_opts="-l h_vmem=6G,h_rt=24:00:00 -N is -cwd"
+    shell: """
+    {JAVA} -Xmx4g -XX:ParallelGCThreads=1 -jar {PICARD} CollectInsertSizeMetrics REFERENCE_SEQUENCE={REFERENCE} INPUT={input} HISTOGRAM_FILE={output[1]} METRIC_ACCUMULATION_LEVEL=ALL_READS OUTPUT={output[0]} VALIDATION_STRINGENCY=LENIENT QUIET=true VERBOSITY=ERROR
+        """
+
+rule hybridization_metrics:
+    input: "%s/{sample}.final.cram"%DATA_DIR
+    output: "{sample}_hybridization_metrics.txt", "{sample}_per_target_coverage.txt"
+    params: sge_opts="-l h_vmem=6G,h_rt=24:00:00 -N hm -cwd"
+    shell: """
+    {JAVA} -Xmx4g -XX:ParallelGCThreads=1 -jar {PICARD} CalculateHsMetrics REFERENCE_SEQUENCE={REFERENCE} INPUT={input} OUTPUT={output[0]} PER_TARGET_COVERAGE={output[1]} BAIT_INTERVALS={INTERVALS} TARGET_INTERVALS={INTERVALS} VALIDATION_STRINGENCY=LENIENT
+    """
+
+rule clean:
+    shell: """
+    rm *summary
+    rm *sam
+
+    """
