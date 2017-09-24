@@ -37,9 +37,6 @@ rule counts:
     module load VCFtools/0.1.14
     module load tabix/0.2.6
     module load bcftools/1.4
-    bcftools reheader {input} --output $TMPDIR/{params.prefix}.family.local.vcf.gz -s sample_list.txt
-
-    tabix -p vcf $TMPDIR/{params.prefix}.family.local.vcf.gz
 
     #counts
     {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.fa | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.fa.freebayes.variants.counts.ct
