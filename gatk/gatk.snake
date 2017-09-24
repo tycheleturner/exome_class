@@ -35,7 +35,6 @@ rule targets_only:
         module load modules modules-init modules-gs modules-eichler
         module load java/8u25         
         module load tabix/0.2.6
-        module load tabix/0.2.6
         java -jar {GATK} -T SelectVariants -R {REFERENCE} -V {input} -o {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf -L {INTERVALS}
         bgzip {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf
         tabix -p vcf {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf.gz
