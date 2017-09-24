@@ -1,0 +1,54 @@
+import os
+
+if config == {}:
+    configfile: "config.json"
+
+REFERENCE = config["reference"]
+REFERENCE_SHORT = config["reference_short"]
+DATA_DIR = config["data_dir"] 
+FREEBAYES = config["freebayes"]
+FAMILY_FILE = config["family_file"]
+DICT = config["dict"]
+OUT_DIR = config["out_dir"]
+
+#show samples to run
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+print(FAMILIES)
+
+rule all: 
+   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.freebayes.norm.vcf.gz" % OUT_DIR, family = FAMILIES)
+   params: sge_opts="-l mfree=20G -N run_all"
+
+rule snp_run:
+    input: "%s/{family}.fa.final.cram"%DATA_DIR
+    output: "%s/{family}.family.freebayes.norm.vcf.gz"%OUT_DIR
+    benchmark: "{family}.freebayes.log"
+    params: prefix="{family}", sge_opts="-l h_rt=200:00:00,h_vmem=30G,disk_free=20G -N snp -cwd "
+    shell: """
+        sleep $[ ( $RANDOM % 10 )  + 1 ]m
+        chmod 700 $TMPDIR
+        module load modules modules-init modules-gs modules-eichler
+        module load tabix/0.2.6
+        module load bcftools/1.3.1
+        module load java/8u25
+	module load mpfr/3.1.0 gmp/5.0.2 mpc/0.8.2 gcc/4.9.1 	
+
+        rsync --bwlimit 20000 --copy-links -a {REFERENCE}* $TMPDIR/
+        rsync --bwlimit 20000 --copy-links -a {FREEBAYES} $TMPDIR/
+        rsync --bwlimit 20000 --copy-links -a {DICT} $TMPDIR/
+
+        $TMPDIR/freebayes -f $TMPDIR/{REFERENCE_SHORT} --use-best-n-alleles 4 -C 2 -m 20 -q 20 {DATA_DIR}/{params.prefix}.fa.final.cram {DATA_DIR}/{params.prefix}.mo.final.cram {DATA_DIR}/{params.prefix}.p1.final.cram > $TMPDIR/{params.prefix}.family.freebayes.vcf
+
+        bgzip $TMPDIR/{params.prefix}.family.freebayes.vcf
+        tabix -p vcf $TMPDIR/{params.prefix}.family.freebayes.vcf.gz
+
+        bcftools norm $TMPDIR/{params.prefix}.family.freebayes.vcf.gz -c e -f {REFERENCE} -o $TMPDIR/{params.prefix}.family.freebayes.norm.vcf.gz -O z -s -m -both
+        tabix -p vcf $TMPDIR/{params.prefix}.family.freebayes.norm.vcf.gz
+        mv $TMPDIR/{params.prefix}.family.freebayes.norm.vcf.gz {OUT_DIR}
+        mv $TMPDIR/{params.prefix}.family.freebayes.norm.vcf.gz.tbi {OUT_DIR}
+        ls {output}
+
+    """
+
