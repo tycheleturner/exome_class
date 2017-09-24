@@ -1,6 +1,6 @@
 {
-  "family_file": "/net/eichler/vol23/projects/exome_genome_class/nobackups/instructor/freebayes/exomes/family.txt",
-  "freebayes_dir": "/net/eichler/vol23/projects/exome_genome_class/nobackups/instructor/freebayes/exomes/output/",
-  "out_dir": "/net/eichler/vol23/projects/exome_genome_class/nobackups/instructor/freebayes/exomes/counts/",
-  "vcfkeepsamples": "/net/eichler/vol4/home/tychele/github/vcflib/bin/vcfkeepsamples"
+  "family_file": "/path/to/family.txt",
+  "freebayes_dir": "/path/to/freebayes/vcffiles/",
+  "out_dir": "./",
+  "vcfkeepsamples": "/path/to/vcflib/bin/vcfkeepsamples"
 }
