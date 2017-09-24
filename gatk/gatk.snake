@@ -1,0 +1,73 @@
+import os
+
+if config == {}:
+    configfile: "config.json"
+
+REFERENCE = config["reference"]
+REFERENCE_SHORT = config["reference_short"]
+DATA_DIR = config["data_dir"] 
+GATK = config["gatk"]
+FAMILY_FILE = config["family_file"]
+DICT = config["dict"]
+OUT_DIR = config["out_dir"]
+DBSNP = config["dbsnp"]
+
+#show samples to run
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+print(FAMILIES)
+
+rule all: 
+   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.vcf.gz" % OUT_DIR, family = FAMILIES)
+   params: sge_opts="-l mfree=20G -N run_all"
+
+rule snp_run:
+    input: "%s/{family}.fa.final.cram"%DATA_DIR
+    output: "%s/{family}.family.gatk.norm.vcf.gz"%OUT_DIR
+    benchmark: "{family}.gatk.log"
+    params: prefix="{family}", sge_opts="-l h_rt=72:00:00,h_vmem=30G,disk_free=20G -N snp -cwd "
+    shell: """
+        sleep $[ ( $RANDOM % 10 )  + 1 ]m
+        chmod 700 $TMPDIR
+        module load modules modules-init modules-gs modules-eichler
+        module load tabix/0.2.6
+        module load bcftools/1.3.1
+        module load java/8u25
+	module load mpfr/3.1.0 gmp/5.0.2 mpc/0.8.2 gcc/4.9.1 	
+        module load samtools/1.4
+
+        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.fa.tmp.bam
+        samtools index {params.prefix}.fa.tmp.bam
+
+        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.mo.tmp.bam
+        samtools index {params.prefix}.mo.tmp.bam
+
+        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.p1.tmp.bam
+        samtools index {params.prefix}.p1.tmp.bam
+
+        rsync --bwlimit 20000 --copy-links -a {REFERENCE}* $TMPDIR/
+        rsync --bwlimit 20000 --copy-links -a {GATK} $TMPDIR/
+        rsync --bwlimit 20000 --copy-links -a {DICT} $TMPDIR/
+
+        java -Xmx4g -jar $TMPDIR/GenomeAnalysisTK.jar -T HaplotypeCaller -A AlleleBalanceBySample -A DepthPerAlleleBySample -A MappingQualityZeroBySample -A StrandBiasBySample -A Coverage -A FisherStrand -A HaplotypeScore -A MappingQualityRankSumTest -A MappingQualityZero -A QualByDepth -A RMSMappingQuality -A ReadPosRankSumTest -A VariantType -R $TMPDIR/human_g1k_v37.fasta --dbsnp {DBSNP} -o $TMPDIR/{params.prefix}.family.gatk.vcf -nct 1 -I {params.prefix}.fa.tmp.bam -I {params.prefix}.mo.tmp.bam -I {params.prefix}.p1.tmp.bam
+        
+        bgzip $TMPDIR/{params.prefix}.family.gatk.vcf
+        tabix -p vcf $TMPDIR/{params.prefix}.family.gatk.vcf.gz
+
+        bcftools norm $TMPDIR/{params.prefix}.family.gatk.vcf.gz -c e -f {REFERENCE} -o $TMPDIR/{params.prefix}.family.gatk.norm.vcf.gz -O z -s -m -both
+        tabix -p vcf $TMPDIR/{params.prefix}.family.gatk.norm.vcf.gz
+        mv $TMPDIR/{params.prefix}.family.gatk.norm.vcf.gz {OUT_DIR}
+        mv $TMPDIR/{params.prefix}.family.gatk.norm.vcf.gz.tbi {OUT_DIR}
+
+        rm {params.prefix}.fa.tmp.bam
+        rm {params.prefix}.mo.tmp.bam
+        rm {params.prefix}.p1.tmp.bam
+
+        rm {params.prefix}.fa.tmp.bam.bai
+        rm {params.prefix}.mo.tmp.bam.bai
+        rm {params.prefix}.p1.tmp.bam.bai
+
+        ls {output}
+    """
+

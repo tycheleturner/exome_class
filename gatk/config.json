@@ -1,0 +1,10 @@
+{
+  "reference": "/path/to/human_g1k_v37.fasta",
+  "reference_short": "human_g1k_v37.fasta",
+  "data_dir": "/path/to/cram/exomes/",
+  "gatk": "/path/to/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar",
+  "family_file": "/path/to/families.txt",
+  "dict": "/path/to/human_g1k_v37.dict",
+  "out_dir": "/path/to/output/",
+  "dbsnp" : "/path/to/dbsnp_138.b37.vcf.gz"
+}
