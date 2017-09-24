@@ -59,10 +59,10 @@ rule snp_run:
         samtools view -b -T {REFERENCE} {input} -o {params.prefix}.fa.tmp.bam
         samtools index {params.prefix}.fa.tmp.bam
 
-        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.mo.tmp.bam
+        samtools view -b -T {REFERENCE} {params.prefix}.mo.final.cram -o {params.prefix}.mo.tmp.bam
         samtools index {params.prefix}.mo.tmp.bam
 
-        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.p1.tmp.bam
+        samtools view -b -T {REFERENCE} {params.prefix}.p1.final.cram -o {params.prefix}.p1.tmp.bam
         samtools index {params.prefix}.p1.tmp.bam
 
         rsync --bwlimit 20000 --copy-links -a {REFERENCE}* $TMPDIR/
