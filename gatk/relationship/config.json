@@ -1,0 +1,6 @@
+{
+  "vcftools": "/path/to/vcftools_0.1.12a/bin/vcftools",
+  "plink": "/path/to/plink-1.07-x86_64/plink",
+  "king": "path/to/king/king",
+  "data_dir": "../output/"
+}
