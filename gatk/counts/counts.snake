@@ -1,0 +1,54 @@
+import os
+
+
+if config == {}:
+    configfile: "config.json"
+
+FREEBAYES_DIR = config["gatk_dir"]
+OUT_DIR = config["out_dir"]
+VCFKEEPSAMPLES = config["vcfkeepsamples"]
+FAMILY_FILE = config["family_file"]
+
+FAMILIES = []
+with open(FAMILY_FILE) as f:
+    FAMILIES = f.read().splitlines()
+print(FAMILIES)
+
+rule all:
+    input: expand("%s/{family}.family.gatk.norm.vcf.gz"%FREEBAYES_DIR, family=FAMILIES), expand("%s/{family}.p1.gatk.variants.counts.per.chrom.ct"%OUT_DIR, family=FAMILIES)
+    params: sge_opts="-l mfree=20G -N run_all" 
+
+rule combine:
+    shell: """
+    module load modules modules-init modules-gs
+    module load R/3.0.0
+    Rscript summarize_counts.R
+    """
+
+rule counts:
+    input: "%s/{family}.family.gatk.norm.vcf.gz"%FREEBAYES_DIR
+    output: "%s/{family}.p1.gatk.variants.counts.per.chrom.ct"%OUT_DIR
+    params: prefix="{family}", sge_opts="-l h_rt=24:00:00,mfree=5G -N countsChrom -cwd"
+    shell: """
+
+    sleep $[ ( $RANDOM % 10 )  + 1 ]m
+    module load modules modules-init modules-gs
+    module load zlib/1.2.6
+    module load VCFtools/0.1.14
+    module load tabix/0.2.6
+    module load bcftools/1.4
+
+    #counts
+    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.fa | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.fa.gatk.variants.counts.ct
+    Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.fa.gatk.variants.counts.ct -o {params.prefix}.fa.gatk.variants.counts.per.chrom.ct -z {params.prefix}.fa.gatk.heterozygous.variants.counts.per.chrom.hct
+
+    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.mo | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.mo.gatk.variants.counts.ct
+    Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.mo.gatk.variants.counts.ct -o {params.prefix}.mo.gatk.variants.counts.per.chrom.ct -z {params.prefix}.mo.gatk.heterozygous.variants.counts.per.chrom.hct
+
+    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.p1 | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.p1.gatk.variants.counts.ct
+    Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.p1.gatk.variants.counts.ct -o {params.prefix}.p1.gatk.variants.counts.per.chrom.ct -z {params.prefix}.p1.gatk.heterozygous.variants.counts.per.chrom.hct
+
+    ls {output}
+
+    """
+

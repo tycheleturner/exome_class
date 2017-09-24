@@ -1,0 +1,6 @@
+{
+  "family_file": "/path/to/family.txt",
+  "gatk_dir": "/path/to/gatk/vcffiles/",
+  "out_dir": "./",
+  "vcfkeepsamples": "/path/to/vcflib/bin/vcfkeepsamples"
+}
