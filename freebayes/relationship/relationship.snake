@@ -1,0 +1,66 @@
+import os
+
+#Tychele N. Turner, Ph.D.
+#Relationship
+
+if config == {}:
+    configfile: "config.json"
+
+VCFTOOLS = config["vcftools"]
+PLINK = config["plink"]
+KING = config["king"]
+DATA_DIR = config["data_dir"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+    if file.endswith(".freebayes.norm.targets.only.vcf.gz"):
+        SAMPLES.append(str(file).split('.freebayes.norm.targets.only.vcf.gz')[0])
+
+SAMPLES2 = list(set(SAMPLES))
+SAMPLES = SAMPLES2
+
+print(SAMPLES)
+
+rule all:
+        input: expand("%s/{sample}.freebayes.norm.targets.only.vcf.gz" % DATA_DIR, sample = SAMPLES), expand("{sample}.ibs0", sample = SAMPLES)
+		params: sge_opts="-l mfree=20G -N run_all" 
+
+rule king:
+    input: "%s/{sample}.freebayes.norm.targets.only.vcf.gz"%DATA_DIR
+    output: "{sample}.ibs0"
+    log: "{sample}.king.log"
+    params: prefix="{sample}", sge_opts="-l h_vmem=10G,disk_free=20G,h_rt=48:00:00 -N king -cwd "
+    shell: """
+    START=$(date +%s)
+
+    {VCFTOOLS} --gzvcf {input} --not-chr X --not-chr MT --not-chr Y --plink-tped --out {params.prefix}
+
+    {PLINK} --tped {params.prefix}.tped --tfam {params.prefix}.tfam --make-bed --out {params.prefix} --maf 0.20 --noweb
+
+    {KING} -b {params.prefix}.bed --kinship --ibs --prefix {params.prefix}
+
+    rm {params.prefix}.tped
+    rm {params.prefix}.tfam
+    rm {params.prefix}.nosex
+    rm {params.prefix}.fam
+    rm {params.prefix}.bim
+    rm {params.prefix}.log
+    rm {params.prefix}.bed
+    rm {params.prefix}.ibs
+    rm {params.prefix}TMP.dat
+    rm {params.prefix}TMP.ped
+   # rm {params.prefix}.king.log
+    
+    ls {output}
+
+    END=$(date +%s)
+    DIFF=$(( $END - $START ))
+    echo "$DIFF" &> {log}
+
+    """
+
+rule clean:
+    """clean up temporary files"""
+    shell: """
+    rm *king.log
+    """
