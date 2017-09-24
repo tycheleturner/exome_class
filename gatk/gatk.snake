@@ -23,7 +23,7 @@ with open(FAMILY_FILE) as f:
 print(FAMILIES)
 
 rule all: 
-   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.vcf.gz" % OUT_DIR, family = FAMILIES, expand("%s/{family}.family.gatk.norm.targets.only.vcf.gz" % OUT_DIR, family = FAMILIES)
+   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.vcf.gz" % OUT_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.targets.only.vcf.gz" % OUT_DIR, family = FAMILIES)
    params: sge_opts="-l mfree=20G -N run_all"
 
 rule targets_only:
