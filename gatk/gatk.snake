@@ -1,5 +1,8 @@
 import os
 
+#GATK calling workflow
+#Tychele N. Turner, Ph.D.
+
 if config == {}:
     configfile: "config.json"
 
