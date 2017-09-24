@@ -14,6 +14,7 @@ FAMILY_FILE = config["family_file"]
 DICT = config["dict"]
 OUT_DIR = config["out_dir"]
 DBSNP = config["dbsnp"]
+INTERVALS = config["intervals"]
 
 #show samples to run
 FAMILIES = []
@@ -22,8 +23,24 @@ with open(FAMILY_FILE) as f:
 print(FAMILIES)
 
 rule all: 
-   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.vcf.gz" % OUT_DIR, family = FAMILIES)
+   input: expand("%s/{family}.fa.final.cram" % DATA_DIR, family = FAMILIES), expand("%s/{family}.family.gatk.norm.vcf.gz" % OUT_DIR, family = FAMILIES, expand("%s/{family}.family.gatk.norm.targets.only.vcf.gz" % OUT_DIR, family = FAMILIES))
    params: sge_opts="-l mfree=20G -N run_all"
+
+rule targets_only:
+    input: "%s/{family}.family.gatk.norm.vcf.gz"%OUT_DIR
+    output: "%s/{family}.family.gatk.norm.targets.only.vcf.gz"%OUT_DIR
+    benchmark: "{family}.gatk.targets.log"
+    params: prefix="{family}", sge_opts="-l h_rt=200:00:00,h_vmem=30G,disk_free=20G -N targets -cwd "
+    shell: """
+        module load modules modules-init modules-gs modules-eichler
+        module load java/8u25         
+        module load tabix/0.2.6
+        module load tabix/0.2.6
+        java -jar {GATK} -T SelectVariants -R {REFERENCE} -V {input} -o {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf -L {INTERVALS}
+        bgzip {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf
+        tabix -p vcf {OUT_DIR}{params.prefix}.family.gatk.norm.targets.only.vcf.gz
+        ls {output}
+    """
 
 rule snp_run:
     input: "%s/{family}.fa.final.cram"%DATA_DIR
