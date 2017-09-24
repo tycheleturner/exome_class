@@ -5,7 +5,6 @@ if config == {}:
     configfile: "config.json"
 
 FREEBAYES_DIR = config["freebayes_dir"]
-OUT_DIR = config["out_dir"]
 VCFKEEPSAMPLES = config["vcfkeepsamples"]
 FAMILY_FILE = config["family_file"]
 
@@ -15,7 +14,7 @@ with open(FAMILY_FILE) as f:
 print(FAMILIES)
 
 rule all:
-    input: expand("%s/{family}.family.freebayes.norm.vcf.gz"%FREEBAYES_DIR, family=FAMILIES), expand("%s/{family}.p1.freebayes.variants.counts.per.chrom.ct"%OUT_DIR, family=FAMILIES)
+    input: expand("%s/{family}.family.freebayes.norm.targets.only.vcf.gz"%FREEBAYES_DIR, family=FAMILIES), expand("{family}.p1.freebayes.variants.counts.per.chrom.ct", family=FAMILIES)
     params: sge_opts="-l mfree=20G -N run_all" 
 
 rule combine:
@@ -26,8 +25,8 @@ rule combine:
     """
 
 rule counts:
-    input: "%s/{family}.family.freebayes.norm.vcf.gz"%FREEBAYES_DIR
-    output: "%s/{family}.p1.freebayes.variants.counts.per.chrom.ct"%OUT_DIR
+    input: "%s/{family}.family.freebayes.norm.targets.only.vcf.gz"%FREEBAYES_DIR
+    output: "{family}.p1.freebayes.variants.counts.per.chrom.ct"
     params: prefix="{family}", sge_opts="-l h_rt=24:00:00,mfree=5G -N countsChrom -cwd"
     shell: """
 
@@ -39,13 +38,13 @@ rule counts:
     module load bcftools/1.4
 
     #counts
-    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.fa | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.fa.freebayes.variants.counts.ct
+    {VCFKEEPSAMPLES} {FREEBAYES_DIR}{params.prefix}.family.freebayes.norm.targets.only.vcf.gz {params.prefix}.fa | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.fa.freebayes.variants.counts.ct
     Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.fa.freebayes.variants.counts.ct -o {params.prefix}.fa.freebayes.variants.counts.per.chrom.ct -z {params.prefix}.fa.freebayes.heterozygous.variants.counts.per.chrom.hct
 
-    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.mo | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.mo.freebayes.variants.counts.ct
+    {VCFKEEPSAMPLES} {FREEBAYES_DIR}{params.prefix}.family.freebayes.norm.targets.only.vcf.gz {params.prefix}.mo | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.mo.freebayes.variants.counts.ct
     Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.mo.freebayes.variants.counts.ct -o {params.prefix}.mo.freebayes.variants.counts.per.chrom.ct -z {params.prefix}.mo.freebayes.heterozygous.variants.counts.per.chrom.hct
 
-    {VCFKEEPSAMPLES} $TMPDIR/{params.prefix}.family.local.vcf.gz {params.prefix}.p1 | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.p1.freebayes.variants.counts.ct
+    {VCFKEEPSAMPLES} {FREEBAYES_DIR}{params.prefix}.family.freebayes.norm.targets.only.vcf.gz {params.prefix}.p1 | grep -v '#' | awk -F "\\t" '{{print $1"\\t"$10}}' | awk -F : '{{print $1}}' | awk -F '\\t' '{{print$1"_"$2}}' | sort | uniq -c | grep -v 'GL0' > $TMPDIR/{params.prefix}.p1.freebayes.variants.counts.ct
     Rscript counts_per_chrom.R -i $TMPDIR/{params.prefix}.p1.freebayes.variants.counts.ct -o {params.prefix}.p1.freebayes.variants.counts.per.chrom.ct -z {params.prefix}.p1.freebayes.heterozygous.variants.counts.per.chrom.hct
 
     ls {output}

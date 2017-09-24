@@ -1,6 +1,5 @@
 {
   "family_file": "/path/to/family.txt",
   "freebayes_dir": "/path/to/freebayes/vcffiles/",
-  "out_dir": "./",
   "vcfkeepsamples": "/path/to/vcflib/bin/vcfkeepsamples"
 }
