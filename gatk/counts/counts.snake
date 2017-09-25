@@ -13,7 +13,7 @@ with open(FAMILY_FILE) as f:
 print(FAMILIES)
 
 rule all:
-    input: expand("%s/{family}.family.gatk.norm.vcf.gz"%GATK_DIR, family=FAMILIES), expand("%s/{family}.p1.gatk.variants.counts.per.chrom.ct"%OUT_DIR, family=FAMILIES)
+    input: expand("%s/{family}.family.gatk.norm.vcf.gz"%GATK_DIR, family=FAMILIES), expand("{family}.p1.gatk.variants.counts.per.chrom.ct", family=FAMILIES)
     params: sge_opts="-l mfree=20G -N run_all" 
 
 rule combine:
@@ -25,7 +25,7 @@ rule combine:
 
 rule counts:
     input: "%s/{family}.family.gatk.norm.vcf.gz"%GATK_DIR
-    output: "%s/{family}.p1.gatk.variants.counts.per.chrom.ct"%OUT_DIR
+    output: "{family}.p1.gatk.variants.counts.per.chrom.ct"
     params: prefix="{family}", sge_opts="-l h_rt=24:00:00,mfree=5G -N countsChrom -cwd"
     shell: """
 
