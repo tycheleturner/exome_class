@@ -1,0 +1,8 @@
+{
+  "data_dir": "/path/to/exome_genome_class/nobackups/data/exomes",
+  "out_dir": "/path/to/rpkm/output",
+  "reference": "/path/to/indexes/mrsfastULTRA/hg19_masked",
+  "contigs": "/path/to/indexes/mrsfastULTRA/hg19_masked.fai",
+  "conifer": "/path/to/conifer_v0.2.2/",
+  "probes": "/path/to/exome_genome_class/nobackups/annotation/wex_Agilent_SureSelect_v05_b37.baits.slop50.merged.for.wgs.bed"
+}
