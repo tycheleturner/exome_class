@@ -1,7 +1,7 @@
 import os
 
 if config == {}:
-    configfile: "mapping.cram.json"
+    configfile: "mapping.json"
 
 DATA_DIR = config["data_dir"]
 REFERENCE = config["reference"]
