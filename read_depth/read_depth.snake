@@ -1,0 +1,46 @@
+import os
+
+if config == {}:
+    configfile: "read_depth.json"
+
+DATA_DIR = config["data_dir"]
+REFERENCE = config["reference"]
+GATK = config["gatk"]
+TARGETS = config["targets"]
+
+SAMPLES = []
+for file in os.listdir(DATA_DIR):
+    if file.endswith(".final.cram"):
+        SAMPLES.append(str(file).split('.final.cram')[0])
+
+print(SAMPLES)
+
+rule all:
+        input: expand("%s/{sample}.final.cram"%DATA_DIR, sample = SAMPLES), expand("{sample}.DATA.sample_interval_statistics", sample=SAMPLES), expand("{sample}.DATA.sample_interval_summary", sample=SAMPLES), expand("{sample}.DATA.sample_statistics", sample=SAMPLES), expand("{sample}.DATA.sample_summary", sample=SAMPLES)
+        params: sge_opts="-l mfree=20G -N run_all" 
+
+rule get_read_depth:
+    input: "%s/{sample}.final.cram"%DATA_DIR
+    output: "{sample}.DATA.sample_interval_statistics", "{sample}.DATA.sample_interval_summary", "{sample}.DATA.sample_statistics", "{sample}.DATA.sample_summary"
+    params: prefix="{sample}", sge_opts="-l h_vmem=15G,h_rt=48:00:00 -cwd "
+    shell: """
+        #source /net/eichler/vol4/home/tychele/.bashrc 
+        module load modules modules-init modules-gs
+        module load java/8u25
+        module load samtools/1.4
+
+        samtools view -b -T {REFERENCE} {input} -o {params.prefix}.tmp.bam
+        samtools index {params.prefix}.tmp.bam
+
+        java -Xmx10G -jar {GATK} -T DepthOfCoverage -I {params.prefix}.tmp.bam -L {TARGETS} -R {REFERENCE} -dt BY_SAMPLE -dcov 5000 -l INFO --omitDepthOutputAtEachBase --omitLocusTable --minBaseQuality 0 --minMappingQuality 20 --start 1 --stop 5000 --nBins 200 --includeRefNSites --countType COUNT_FRAGMENTS -o {params.prefix}.DATA
+        ls {output[0]}
+        ls {output[1]}
+        ls {output[2]}
+        ls {output[3]}
+        rm {params.prefix}.tmp.bam
+        rm {params.prefix}.tmp.bam.bai
+        """
+
+
+
+

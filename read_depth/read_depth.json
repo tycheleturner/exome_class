@@ -1,0 +1,6 @@
+{  
+  "data_dir": "/path/to/exome_genome_class/nobackups/data/exomes/",
+  "reference": "/path/to/exome_genome_class/nobackups/reference/human_g1k_v37.fasta",
+  "gatk" : "/path/to/GenomeAnalysis-3.5/GenomeAnalysisTK.jar",
+  "targets": "/path/to/exome_genome_class/nobackups/annotation/wex_Agilent_SureSelect_v05_b37.baits.slop50.merged.for.wgs.list"
+}
